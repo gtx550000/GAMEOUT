@@ -1,0 +1,80 @@
+.trending-bar {
+  background: var(--gray-900);
+  overflow: hidden;
+}
+
+html.dark .trending-bar {
+  background: #151515;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.trending-bar__container {
+  display: flex;
+  align-items: center;
+  height: 40px;
+}
+
+.trending-bar__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary-red);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.trending-bar__icon {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.trending-bar__scroll {
+  flex: 1;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+
+.trending-bar__track {
+  display: flex;
+  gap: 24px;
+  animation: scrollTrending 30s linear infinite;
+  width: max-content;
+}
+
+@keyframes scrollTrending {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.trending-bar__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: color var(--transition-fast);
+}
+
+.trending-bar__item:hover {
+  color: var(--primary-red) !important;
+}
+
+.trending-bar__rank {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--primary-red);
+}
+
+.trending-bar__name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.trending-bar__count {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+}

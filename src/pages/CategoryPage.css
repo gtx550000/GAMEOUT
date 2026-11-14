@@ -1,0 +1,105 @@
+/* ============================================================
+   CategoryPage Styles
+   ============================================================ */
+
+.category-page {
+  margin-top: var(--nav-height);
+}
+
+.category-page__header {
+  background: linear-gradient(135deg, var(--gray-900) 0%, #1a1a2e 100%);
+  padding: 60px 0 50px;
+  text-align: center;
+}
+
+html.dark .category-page__header {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+}
+
+.category-page__icon {
+  display: block;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  color: var(--primary-red);
+}
+
+.category-page__title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.category-page__desc {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Toolbar */
+.category-page__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 24px;
+}
+
+.category-page__count {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.category-page__sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.category-page__sort-select {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Grid */
+.category-page__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding-bottom: 60px;
+}
+
+.category-page__empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
+  .category-page__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .category-page__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .category-page__title {
+    font-size: 1.5rem;
+  }
+}
