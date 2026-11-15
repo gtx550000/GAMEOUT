@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Hero from '../components/Hero/Hero';
 import TrendingBar from '../components/TrendingBar/TrendingBar';
 import CategoryFilter from '../components/CategoryFilter/CategoryFilter';
@@ -7,7 +7,7 @@ import GameCard from '../components/GameCard/GameCard';
 import Newsletter from '../components/Newsletter/Newsletter';
 import { upcomingGames } from '../data/mockData';
 import { useNews } from '../context/NewsContext';
-import { Flame, Newspaper, Gamepad, ArrowRight, ChartBarIncreasing} from 'lucide-react';
+import { Flame, Newspaper, Gamepad, ArrowRight, ChartBarIncreasing } from 'lucide-react';
 import './HomePage.css';
 
 const newsSectionTitles = {
@@ -21,9 +21,20 @@ const newsSectionTitles = {
 };
 
 export default function HomePage() {
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeCategory = searchParams.get('category') || 'all';
+
   const { articles } = useNews();
   const sectionTitle = newsSectionTitles[activeCategory] || newsSectionTitles.all;
+
+  // เปลี่ยนหมวดหมู่พร้อมบันทึกลง URL เพื่อให้ปุ่มย้อนกลับจากเมาส์จำค่าหมวดหมู่เดิมได้แม่นยำ
+  const handleCategoryChange = (catId) => {
+    if (catId === 'all') {
+      setSearchParams({}, { replace: false });
+    } else {
+      setSearchParams({ category: catId }, { replace: false });
+    }
+  };
 
   const filteredNews = activeCategory === 'all'
     ? articles
@@ -54,7 +65,7 @@ export default function HomePage() {
         {/* Category Filter */}
         <CategoryFilter
           activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
+          onCategoryChange={handleCategoryChange}
         />
 
         {/* Upcoming Games Section */}
@@ -99,8 +110,8 @@ export default function HomePage() {
         </section>
       </div>
 
-      {/* Newsletter */}
-      <Newsletter />
+      {/* Newsletter 
+      <Newsletter />*/}
     </main>
   );
 }

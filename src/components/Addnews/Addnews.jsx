@@ -50,6 +50,72 @@ const PRESET_IMAGES = [
   { name: 'Nintendo', url: 'https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=1200&h=600&fit=crop' },
 ];
 
+const compressImageFile = (file) => new Promise((resolve, reject) => {
+  if (!file.type.startsWith('image/')) {
+    reject(new Error('กรุณาเลือกไฟล์รูปภาพ'));
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    reject(new Error('ไฟล์รูปภาพต้องมีขนาดไม่เกิน 10 MB'));
+    return;
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  const uploadedImage = new window.Image();
+  const releaseObjectUrl = () => URL.revokeObjectURL(objectUrl);
+
+  uploadedImage.onload = () => {
+    try {
+      const maxDimension = 1200;
+      const scale = Math.min(1, maxDimension / Math.max(uploadedImage.width, uploadedImage.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(uploadedImage.width * scale);
+      canvas.height = Math.round(uploadedImage.height * scale);
+      const context = canvas.getContext('2d');
+
+      if (!context) {
+        throw new Error('ไม่สามารถประมวลผลรูปภาพได้ กรุณาลองเลือกไฟล์อื่น');
+      }
+
+      context.drawImage(uploadedImage, 0, 0, canvas.width, canvas.height);
+      const imageData = canvas.toDataURL('image/webp', 0.82);
+      if (imageData.length > 3 * 1024 * 1024) {
+        throw new Error('รูปภาพมีขนาดใหญ่เกินไปหลังประมวลผล กรุณาเลือกไฟล์อื่น');
+      }
+
+      resolve(imageData);
+    } catch (error) {
+      reject(error);
+    } finally {
+      releaseObjectUrl();
+    }
+  };
+
+  uploadedImage.onerror = () => {
+    releaseObjectUrl();
+    reject(new Error('เปิดไฟล์รูปภาพนี้ไม่ได้ กรุณาเลือกไฟล์อื่น'));
+  };
+
+  uploadedImage.src = objectUrl;
+});
+
+const parseTagsInput = (value) => value
+  .split(',')
+  .map((tag) => tag.trim().replace(/^#+/, ''))
+  .filter(Boolean)
+  .slice(0, 3);
+
+const formatTagsInput = (tags) => {
+  const tagList = Array.isArray(tags) ? tags : typeof tags === 'string' ? tags.split(',') : [];
+  return tagList
+    .map((tag) => String(tag).trim().replace(/^#+/, ''))
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((tag) => `#${tag}`)
+    .join(', ');
+};
+
 export default function Addnews() {
   const navigate = useNavigate();
   const { articles, addArticle, updateArticle, deleteArticle } = useNews();
@@ -83,8 +149,9 @@ export default function Addnews() {
   const [image, setImage] = useState(PRESET_IMAGES[0].url);
   const [author, setAuthor] = useState(currentStaff?.username ? `Staff: ${currentStaff.username}` : 'GamePulse Staff');
   const [readTime, setReadTime] = useState('5');
-  const [tagsInput, setTagsInput] = useState('Gaming, News, 2026');
+  const [tagsInput, setTagsInput] = useState('');
   const [content, setContent] = useState('');
+  const [guideSections, setGuideSections] = useState([{ content: '', image: '' }]);
 
   // ฟิลด์เฉพาะหมวดรีวิวเกม
   const [score, setScore] = useState(8.5);
@@ -210,6 +277,34 @@ export default function Addnews() {
     setCons(cons.filter((_, i) => i !== index));
   };
 
+  const handleImageUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    event.target.value = '';
+
+    compressImageFile(file)
+      .then(setImage)
+      .catch((error) => alert(error.message));
+  };
+
+  const updateGuideSection = (index, field, value) => {
+    setGuideSections((sections) =>
+      sections.map((section, sectionIndex) =>
+        sectionIndex === index ? { ...section, [field]: value } : section
+      )
+    );
+  };
+
+  const handleGuideImageUpload = (event, index) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    event.target.value = '';
+
+    compressImageFile(file)
+      .then((imageData) => updateGuideSection(index, 'image', imageData))
+      .catch((error) => alert(error.message));
+  };
+
   // เริ่มต้นแก้ไขบทความ (ดึงข้อมูลเข้าสู่ฟอร์ม)
   const handleStartEdit = (art) => {
     setEditingArticleId(art.id);
@@ -219,8 +314,13 @@ export default function Addnews() {
     setImage(art.image || PRESET_IMAGES[0].url);
     setAuthor(art.author || `ทีมงาน: ${currentStaff.username}`);
     setReadTime(art.readTime ? String(art.readTime).replace(/[^0-9]/g, '') : '5');
-    setTagsInput(art.tags ? art.tags.join(', ') : '');
+    setTagsInput(formatTagsInput(art.tags));
     setContent(art.content || '');
+    setGuideSections(
+      art.guideSections?.length
+        ? art.guideSections
+        : [{ content: art.content || '', image: '' }]
+    );
     setEditReason('');
 
     // ฟิลด์รีวิว
@@ -257,15 +357,24 @@ export default function Addnews() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!title.trim() || !excerpt.trim()) {
-      alert('กรุณากรอกหัวข้อและคำโปรยให้ครบถ้วน');
+    const isGuide = activeTab === 'news' && category === 'guides';
+    const completedGuideSections = guideSections
+      .map((section) => ({ content: section.content.trim(), image: section.image }))
+      .filter((section) => section.content || section.image);
+    const hasContent = isGuide
+      ? completedGuideSections.length > 0
+      : Boolean(content.trim());
+
+    if (!title.trim() || !excerpt.trim() || !hasContent) {
+      alert(
+        isGuide
+          ? 'กรุณากรอกหัวข้อ คำโปรย และเพิ่มเนื้อหาหรือภาพประกอบในไกด์อย่างน้อย 1 ส่วน'
+          : 'กรุณากรอกหัวข้อ คำโปรย และเนื้อหาฉบับเต็มให้ครบถ้วน'
+      );
       return;
     }
 
-    const tags = tagsInput
-      .split(',')
-      .map((t) => t.trim().replace(/^#/, ''))
-      .filter((t) => t.length > 0);
+    const tags = parseTagsInput(tagsInput);
 
     const articleData = {
       title: title.trim(),
@@ -274,8 +383,9 @@ export default function Addnews() {
       image: image.trim() || PRESET_IMAGES[0].url,
       author: author.trim() || 'GamePulse Staff',
       readTime,
-      tags: tags.length > 0 ? tags : ['GamePulse', 'Gaming'],
-      content: content.trim(),
+      tags,
+      content: isGuide ? '' : content.trim(),
+      guideSections: isGuide ? completedGuideSections : [],
       createdBy: currentStaff?.username || 'admin',
     };
 
@@ -317,6 +427,8 @@ export default function Addnews() {
     setTitle('');
     setExcerpt('');
     setContent('');
+    setGuideSections([{ content: '', image: '' }]);
+    setTagsInput('');
     setVerdict('');
     setEditReason('');
     setSuccessInfo(null);
@@ -843,12 +955,23 @@ export default function Addnews() {
                 <div className="addnews-field">
                   <label>หรือระบุ URL รูปภาพเอง</label>
                   <input
-                    type="url"
+                    type="text"
                     value={image}
                     onChange={(e) => setImage(e.target.value)}
                     placeholder="https://images.unsplash.com/..."
                     required
                   />
+                </div>
+
+                <div className="addnews-field addnews-image-upload">
+                  <label htmlFor="addnews-cover-upload">หรือเลือกรูปภาพจากเครื่อง</label>
+                  <input
+                    id="addnews-cover-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
+                  <small>รองรับไฟล์รูปภาพ ขนาดไม่เกิน 10 MB ระบบจะย่อขนาดก่อนบันทึก</small>
                 </div>
               </div>
 
@@ -883,7 +1006,20 @@ export default function Addnews() {
                   <div className="addnews-row">
                     <div className="addnews-field">
                       <label>หมวดหมู่ข่าว</label>
-                      <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                      <select
+                        value={category}
+                        onChange={(e) => {
+                          const nextCategory = e.target.value;
+                          if (
+                            nextCategory === 'guides' &&
+                            content.trim() &&
+                            guideSections.every((section) => !section.content.trim() && !section.image)
+                          ) {
+                            setGuideSections([{ content, image: '' }]);
+                          }
+                          setCategory(nextCategory);
+                        }}
+                      >
                         <option value="news">📰 ข่าวทั่วไป (News)</option>
                         <option value="guides">📖 ไกด์ & ทริค (Guides)</option>
                         <option value="esports">🏆 อีสปอร์ต (Esports)</option>
@@ -919,17 +1055,87 @@ export default function Addnews() {
                   />
                 </div>
 
-                <div className="addnews-field">
-                  <label>
-                    เนื้อหาฉบับเต็ม (Full Article Content)
-                  </label>
-                  <textarea
-                    rows="7"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="พิมพ์เนื้อหาข่าวสาร รายละเอียด หรือบทวิเคราะห์ที่นี่ (เว้นวรรค 2 บรรทัดเพื่อขึ้นย่อหน้าใหม่)..."
-                  />
-                </div>
+                {activeTab === 'news' && category === 'guides' ? (
+                  <div className="addnews-field">
+                    <label>
+                      เนื้อหาและภาพประกอบไกด์ <span className="required">*</span>
+                    </label>
+                    <small className="addnews-guide-hint">
+                      เพิ่มเนื้อหาหรือภาพประกอบอย่างน้อย 1 ส่วน เพื่อให้ผู้อ่านทำตามได้ง่าย
+                    </small>
+
+                    <div className="addnews-guide-sections">
+                      {guideSections.map((section, index) => (
+                        <div className="addnews-guide-section" key={index}>
+                          <div className="addnews-guide-section__header">
+                            <h3>ส่วนที่ {index + 1}</h3>
+                            {guideSections.length > 1 && (
+                              <button
+                                type="button"
+                                className="addnews-guide-remove-btn"
+                                aria-label={`ลบส่วนที่ ${index + 1}`}
+                                title={`ลบส่วนที่ ${index + 1}`}
+                                onClick={() => setGuideSections((sections) => sections.filter((_, sectionIndex) => sectionIndex !== index))}
+                              >
+                                <Trash2 size={16} />
+                                ลบส่วนนี้
+                              </button>
+                            )}
+                          </div>
+                          <div className="addnews-field">
+                            <label htmlFor={`guide-content-${index}`}>เนื้อหา</label>
+                            <textarea
+                              id={`guide-content-${index}`}
+                              rows="4"
+                              value={section.content}
+                              onChange={(e) => updateGuideSection(index, 'content', e.target.value)}
+                              placeholder="อธิบายขั้นตอนหรือรายละเอียดของส่วนนี้..."
+                            />
+                          </div>
+
+                          <div className="addnews-field addnews-image-upload">
+                            <label htmlFor={`guide-image-${index}`}>ภาพประกอบ (ถ้ามี)</label>
+                            <input
+                              id={`guide-image-${index}`}
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleGuideImageUpload(e, index)}
+                            />
+                            {section.image && (
+                              <img
+                                className="addnews-guide-image-preview"
+                                src={section.image}
+                                alt={`ภาพประกอบส่วนที่ ${index + 1}`}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="addnews-guide-add-btn"
+                      onClick={() => setGuideSections((sections) => [...sections, { content: '', image: '' }])}
+                    >
+                      <Plus size={16} />
+                      เพิ่มเนื้อหาและภาพประกอบ
+                    </button>
+                  </div>
+                ) : (
+                  <div className="addnews-field">
+                    <label>
+                      เนื้อหาฉบับเต็ม (Full Article Content) <span className="required">*</span>
+                    </label>
+                    <textarea
+                      rows="7"
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="พิมพ์เนื้อหาข่าวสาร รายละเอียด หรือบทวิเคราะห์ที่นี่ (เว้นวรรค 2 บรรทัดเพื่อขึ้นย่อหน้าใหม่)..."
+                      required
+                    />
+                  </div>
+                )}
 
                 <div className="addnews-row">
                   <div className="addnews-field">
@@ -946,14 +1152,15 @@ export default function Addnews() {
 
                   <div className="addnews-field">
                     <label>
-                      <Tag size={14} /> แท็ก (คั่นด้วยจุลภาค ,)
+                      <Tag size={14} /> {editingArticleId ? 'แก้ไขแท็ก (สูงสุด 3 แท็ก)' : 'แท็ก (สูงสุด 3 แท็ก)'}
                     </label>
                     <input
                       type="text"
                       value={tagsInput}
-                      onChange={(e) => setTagsInput(e.target.value)}
-                      placeholder="เช่น GTA VI, Rockstar, PC, PS5"
+                      onChange={(e) => setTagsInput(e.target.value.split(',').slice(0, 3).join(','))}
+                      placeholder="#Nintendo, #Switch, #Zelda"
                     />
+                    <small className="addnews-tags-hint">พิมพ์ # นำหน้าแต่ละแท็ก และคั่นด้วยจุลภาค ,</small>
                   </div>
                 </div>
 

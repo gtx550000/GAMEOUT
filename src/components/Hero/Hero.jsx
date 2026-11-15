@@ -60,7 +60,7 @@ export default function Hero() {
               </span>
             </div>
             <div className="hero__actions">
-              <Link to={`/article/${article.id}`} className="hero__btn hero__btn--primary">
+              <Link to={`/article/${article.id}`} state={{ from: '/' }} className="hero__btn hero__btn--primary">
                 อ่านเพิ่มเติม
               </Link>
               <button className="hero__btn hero__btn--secondary">

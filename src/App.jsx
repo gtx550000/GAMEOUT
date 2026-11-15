@@ -5,6 +5,11 @@ import Footer from './components/Footer/Footer';
 import HomePage from './pages/HomePage';
 import ArticlePage from './pages/ArticlePage';
 import CategoryPage from './pages/CategoryPage';
+import TagPage from './pages/TagPage';
+import ContentPage from './pages/ContentPage';
+import CommunityPage from './components/Community/CommunityPage';
+import AboutPage from './components/About/AboutPage';
+import AboutSectionPage from './components/About/AboutSectionPage';
 import Addnews from './components/Addnews/Addnews';
 import { NewsProvider } from './context/NewsContext';
 import { useDarkMode } from './hooks/useDarkMode';
@@ -55,6 +60,12 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/article/:id" element={<ArticlePage />} />
+              <Route path="/tag/:tag" element={<TagPage />} />
+              <Route path="/content" element={<ContentPage />} />
+              <Route path="/community" element={<CommunityPage />} />
+              <Route path="/community/:section" element={<CommunityPage />} />
+              <Route path="/about/:section" element={<AboutSectionPage />} />
+              <Route path="/about" element={<AboutPage />} />
 
               {/* URL Path สำหรับทีมงานเข้าสู่ระบบจัดการข่าวและรีวิว */}
               <Route path="/add-news" element={<Addnews />} />

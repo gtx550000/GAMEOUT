@@ -1,27 +1,57 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Clock, Eye, MessageCircle, Share2, Bookmark, ThumbsUp, ArrowLeft, User, CheckCircle2, XCircle, Award, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Clock, Eye, MessageCircle, Share2, Bookmark, ThumbsUp, ArrowLeft, User, CheckCircle2, XCircle, Award } from 'lucide-react';
 import ReviewScore from '../components/ReviewScore/ReviewScore';
 import NewsCard from '../components/NewsCard/NewsCard';
 import { useNews } from '../context/NewsContext';
-import {  Newspaper } from 'lucide-react';
 import './ArticlePage.css';
 
 export default function ArticlePage() {
   const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { getArticleById, articles, featured } = useNews();
   const article = getArticleById(id);
-  const [showRevisionDetails, setShowRevisionDetails] = useState(false);
+
+  // คำนวณหน้าที่ควรถอยกลับไป: ถ้ามี state.from ใช้ตามนั้น หากไม่มีให้ถอยไปที่หมวดหมู่ของบทความนั้น เช่น /news
+  const defaultCategoryPath = article?.category ? `/${article.category}` : '/news';
+  const fromState = location.state?.from;
+  const returnTo = fromState && !fromState.startsWith(`/article/${id}`) ? fromState : defaultCategoryPath;
+
+  // ฟังก์ชันย้อนกลับอัจฉริยะ
+  const handleBack = useCallback((e) => {
+    if (e) e.preventDefault();
+
+    // 1. ถ้ามีข้อมูลหน้าที่ส่งต่อมาและไม่ใช่หน้าปัจจุบัน ให้กลับไปหน้านั้น
+    if (fromState && !fromState.startsWith(`/article/${id}`)) {
+      navigate(fromState);
+      return;
+    }
+
+    // 2. ถ้ามีประวัติการเข้าชมใน Browser ให้ย้อนกลับตามจริง
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+      return;
+    }
+
+    // 3. Fallback: กลับไปหน้าหมวดหมู่ของบทความนั้น (เช่น /news, /reviews) แทนการกลับไปหน้าแรก
+    navigate(defaultCategoryPath);
+  }, [fromState, id, navigate, defaultCategoryPath]);
 
   if (!article) {
     return (
       <div className="article-page article-page--not-found">
         <h1>ไม่พบบทความ</h1>
         <p>บทความนี้อาจถูกลบหรือยังไม่มีในระบบ</p>
-        <Link to="/" className="article-page__back">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="article-page__back"
+          style={{ cursor: 'pointer', background: 'none', border: 'none' }}
+        >
           <ArrowLeft size={16} />
-          กลับสู่หน้าแรก
-        </Link>
+          ย้อนกลับ
+        </button>
       </div>
     );
   }
@@ -32,12 +62,12 @@ export default function ArticlePage() {
     .slice(0, 3);
 
   const categoryLabels = {
-    news: ' ข่าว',
-    reviews: ' รีวิว',
-    guides: ' ไกด์',
-    esports: ' อีสปอร์ต',
-    videos: ' วิดีโอ',
-    upcoming: ' เกมเร็วๆ นี้',
+    news: '📰 ข่าว',
+    reviews: '⭐ รีวิว',
+    guides: '📖 ไกด์',
+    esports: '🏆 อีสปอร์ต',
+    videos: '🎬 วิดีโอ',
+    upcoming: '🚀 เกมเร็วๆ นี้',
   };
 
   return (
@@ -47,10 +77,16 @@ export default function ArticlePage() {
         <img src={article.image} alt={article.title} className="article-page__hero-img" />
         <div className="article-page__hero-overlay" />
         <div className="article-page__hero-content">
-          <Link to="/" className="article-page__back-btn">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="article-page__back-btn"
+            style={{ cursor: 'pointer' }}
+            aria-label="ย้อนกลับไปหน้าก่อนหน้า"
+          >
             <ArrowLeft size={18} />
             กลับ
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -58,9 +94,9 @@ export default function ArticlePage() {
         <article className="article-page__main">
           {/* Header */}
           <header className="article-page__header">
-            <span className="article-page__category">
+            <Link to={`/${article.category}`} className="article-page__category">
               {categoryLabels[article.category] || article.category}
-            </span>
+            </Link>
             <h1 className="article-page__title">{article.title}</h1>
 
             <div className="article-page__meta">
@@ -81,40 +117,12 @@ export default function ArticlePage() {
               </div>
             </div>
 
-            {/* แถบแจ้งเตือนประวัติการแก้ไขบทความ (Revision History Banner) */}
+            {/* ข้อความแจ้งว่าบทความได้รับการปรับปรุง */}
             {article.editHistory && article.editHistory.length > 0 && (
               <div className="article-page__revision-banner">
-                <div className="article-page__revision-header">
-                  <div className="article-page__revision-info">
-                    <History size={16} />
-                    <span>
-                      บทความนี้ได้รับการปรับปรุงล่าสุด: <strong>{article.lastEditedDisplay || article.date}</strong> (แก้ไข {article.editHistory.length} ครั้ง)
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    className="article-page__revision-toggle"
-                    onClick={() => setShowRevisionDetails(!showRevisionDetails)}
-                  >
-                    <span>{showRevisionDetails ? 'ซ่อนประวัติ' : 'ดูประวัติการแก้ไข'}</span>
-                    {showRevisionDetails ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  </button>
-                </div>
-
-                {showRevisionDetails && (
-                  <div className="article-page__revision-details">
-                    <ul className="article-page__revision-list">
-                      {article.editHistory.map((rev, i) => (
-                        <li key={i}>
-                          <span className="rev-badge">ครั้งที่ #{rev.revisionNumber || (article.editHistory.length - i)}</span>
-                          <span className="rev-date">{rev.displayDate || rev.timestamp}</span>
-                          <span className="rev-editor">โดย: {rev.editedBy}</span>
-                          <span className="rev-reason">หมายเหตุ: {rev.reason}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                <span className="article-page__revision-info">
+                  บทความนี้ได้รับการปรับปรุงล่าสุด: {article.lastEditedDisplay || article.date}
+                </span>
               </div>
             )}
 
@@ -141,34 +149,35 @@ export default function ArticlePage() {
               <p className="article-page__lead">{article.excerpt}</p>
             )}
 
-            {/* แสดงเนื้อหาที่ทีมงานเขียนเข้ามา */}
-            {article.content ? (
+            {article.category === 'guides' && article.guideSections?.length > 0 ? (
+              <div className="article-page__guide-sections">
+                {article.guideSections.map((section, index) => (
+                  <section className="article-page__guide-section" key={index}>
+                    <h2>ขั้นตอนที่ {index + 1}</h2>
+                    {section.content?.trim() && (
+                      <div className="article-page__user-content">
+                        {section.content.trim().split(/\n\s*\n/).map((paragraph, paragraphIndex) => (
+                          <p key={paragraphIndex}>{paragraph}</p>
+                        ))}
+                      </div>
+                    )}
+                    {section.image && (
+                      <img
+                        className="article-page__guide-image"
+                        src={section.image}
+                        alt={`${article.title} - ภาพประกอบขั้นตอนที่ ${index + 1}`}
+                      />
+                    )}
+                  </section>
+                ))}
+              </div>
+            ) : article.content?.trim() ? (
               <div className="article-page__user-content">
-                {article.content.split('\n\n').map((paragraph, idx) => (
+                {article.content.trim().split(/\n\s*\n/).map((paragraph, idx) => (
                   <p key={idx}>{paragraph}</p>
                 ))}
               </div>
-            ) : (
-              <>
-                <p>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                </p>
-
-                <h2>รายละเอียดสำคัญ</h2>
-                <p>
-                  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-                </p>
-
-                <blockquote className="article-page__quote">
-                  "นี่คือหนึ่งในการเปิดตัวที่น่าตื่นเต้นที่สุดในประวัติศาสตร์วงการเกม" - {article.author || 'GamePulse'}
-                </blockquote>
-
-                <h2>สิ่งที่คาดหวัง</h2>
-                <p>
-                  Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
-                </p>
-              </>
-            )}
+            ) : null}
 
             {/* Pros & Cons Box สำหรับรีวิวเกม */}
             {article.category === 'reviews' && (article.pros?.length > 0 || article.cons?.length > 0) && (
@@ -205,23 +214,32 @@ export default function ArticlePage() {
           {/* Tags */}
           {article.tags && article.tags.length > 0 && (
             <div className="article-page__tags">
-              {article.tags.map((tag) => (
-                <span key={tag} className="article-page__tag">#{tag}</span>
-              ))}
+              {article.tags.filter((tag) => typeof tag === 'string' && tag.trim()).map((tag) => {
+                const cleanTag = tag.trim().replace(/^#+/, '');
+                return (
+                  <Link
+                    key={tag}
+                    to={`/tag/${encodeURIComponent(cleanTag)}`}
+                    className="article-page__tag"
+                  >
+                    #{cleanTag}
+                  </Link>
+                );
+              })}
             </div>
           )}
 
           {/* Actions */}
           <div className="article-page__actions">
-            <button className="article-page__action-btn" onClick={() => alert('ขอบคุณสำหรับกำลังใจ!')}>
+            <button className="article-page__action-btn" type="button" onClick={() => alert('ขอบคุณสำหรับกำลังใจ!')}>
               <ThumbsUp size={18} />
               <span>ถูกใจ</span>
             </button>
-            <button className="article-page__action-btn" onClick={() => alert('บันทึกบทความเรียบร้อย')}>
+            <button className="article-page__action-btn" type="button" onClick={() => alert('บันทึกบทความเรียบร้อย')}>
               <Bookmark size={18} />
               <span>บันทึก</span>
             </button>
-            <button className="article-page__action-btn" onClick={() => {
+            <button className="article-page__action-btn" type="button" onClick={() => {
               if (navigator.share) {
                 navigator.share({ title: article.title, url: window.location.href });
               } else {

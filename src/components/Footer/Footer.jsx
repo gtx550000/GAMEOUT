@@ -54,8 +54,8 @@ export default function Footer() {
               </div>
             </div>
             <p className="footer__tagline">
-              แหล่งรวมข่าวเกม รีวิว และข้อมูลอีสปอร์ตที่ครบที่สุดในไทย
-              อัปเดตทุกวัน ทันทุกความเคลื่อนไหวในโลกเกม
+              แหล่งรวมข่าวเกม รีวิว และข้อมูลที่ครบที่สุดในไทย ทันทุกความเคลื่อนไหว
+             
             </p>
             <div className="footer__social">
               <a href="#" className="footer__social-link" aria-label="Facebook">
@@ -77,50 +77,25 @@ export default function Footer() {
           </div>
 
           <div className="footer__links-grid">
-            <div className="footer__links-col">
-              <h4 className="footer__links-title">เนื้อหา</h4>
-              <ul className="footer__links-list">
-                <li><Link to="/news" className="footer__link">ข่าวเกม</Link></li>
-                <li><Link to="/reviews" className="footer__link">รีวิว</Link></li>
-                <li><Link to="/guides" className="footer__link">ไกด์</Link></li>
-                <li><Link to="/esports" className="footer__link">อีสปอร์ต</Link></li>
-                <li><Link to="/upcoming" className="footer__link">เกมเร็วๆ นี้</Link></li>
-              </ul>
-            </div>
-
-            <div className="footer__links-col">
-              <h4 className="footer__links-title">ชุมชน</h4>
-              <ul className="footer__links-list">
-                <li><a href="#" className="footer__link">ฟอรัม</a></li>
-                <li><a href="#" className="footer__link">Discord</a></li>
-                <li><a href="#" className="footer__link">กิจกรรม</a></li>
-                <li><a href="#" className="footer__link">ผู้มีส่วนร่วม</a></li>
-              </ul>
-            </div>
-
-            <div className="footer__links-col">
-              <h4 className="footer__links-title">เกี่ยวกับ</h4>
-              <ul className="footer__links-list">
-                <li><a href="#" className="footer__link">เกี่ยวกับเรา</a></li>
-                <li><a href="#" className="footer__link">ร่วมงานกับเรา</a></li>
-                <li><a href="#" className="footer__link">นโยบายความเป็นส่วนตัว</a></li>
-                <li><a href="#" className="footer__link">ข้อกำหนดการใช้งาน</a></li>
-                <li><a href="#" className="footer__link">ติดต่อเรา</a></li>
-                <li><Link to="/add-news" className="footer__link footer__link--staff" title="ทางเข้าเฉพาะทีมงาน">ระบบทีมงาน (Staff)</Link></li>
-              </ul>
-            </div>
+            <nav className="footer__links-tabs" aria-label="หมวดหมู่เว็บไซต์">
+              <Link to="/content" className="footer__links-title">เนื้อหา</Link>
+              <Link to="/community" className="footer__links-title">ชุมชน</Link>
+              <Link to="/about" className="footer__links-title">เกี่ยวกับเรา</Link>
+              <Link to="/about/privacy" className="footer__links-title">นโยบายความเป็นส่วนตัว</Link>
+              <Link to="/about/terms" className="footer__links-title">ข้อกำหนดการใช้งาน</Link>
+            </nav>
           </div>
         </div>
 
         {/* Bottom Section */}
         <div className="footer__bottom">
           <p className="footer__copyright">
-            © 2026 GameOut. สร้างด้วย <Heart size={14} className="footer__heart" /> สำหรับเกมเมอร์
+            ©2026 Game Out. สร้างด้วย <Heart size={14} className="footer__heart" /> สำหรับเกมเมอร์
           </p>
-          <button className="footer__back-to-top" onClick={scrollToTop} aria-label="กลับไปด้านบน">
+          {/* <button className="footer__back-to-top" onClick={scrollToTop} aria-label="กลับไปด้านบน">
             <ArrowUp size={18} />
             <span>กลับด้านบน</span>
-          </button>
+          </button>*/}
         </div>
       </div>
     </footer>
