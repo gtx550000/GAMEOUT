@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Calendar, Monitor, Zap } from 'lucide-react';
 import './GameCard.css';
-
+// comment
 export default function GameCard({ game, index = 0 }) {
   const getHypeColor = (hype) => {
     if (hype >= 95) return '#E10000';
